@@ -73,8 +73,12 @@ for center in chp_centers:
         incident_type = incident_data.find_element_by_id('lblType').text
         incident_loc = incident_data.find_element_by_id('lblLocation').text
         incident_loc_desc = incident_data.find_element_by_id('lblLocationDesc').text
-        incident_lat = incident_data.find_element_by_id('lblLatLon').text.split(' ')[0]
-        incident_lng = incident_data.find_element_by_id('lblLatLon').text.split(' ')[1]
+        try:
+            incident_lat = incident_data.find_element_by_id('lblLatLon').text.split(' ')[0]
+            incident_lng = incident_data.find_element_by_id('lblLatLon').text.split(' ')[1]
+        except:
+            incident_lat = ''
+            incident_lng = ''
 
         #Get activity for each incident
         activity_type = ''
