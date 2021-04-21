@@ -3,6 +3,7 @@ import pandas as pd
 
 chp_centers_dir = 'data/chp_communications_centers.csv'
 
+#Add incident tweet ID???
 col_list = [
     'chp_center',
     'incident_number',
@@ -24,3 +25,11 @@ def get_chp_centers():
 def get_incident_df():
     df = pd.DataFrame(columns=col_list)
     return df
+
+#Function to receive DF from scrape, save unique incidents??
+
+#Function to create new tweets about incidents
+
+#Function to create new replies providing updates on incidents
+
+
