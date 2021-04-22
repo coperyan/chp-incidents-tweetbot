@@ -14,12 +14,20 @@ def get_incident_df():
 
 def save_incident_df(df):
     df.to_csv(incidents_dir,index=None)
-    
 
-#Function to receive DF from scrape, save unique incidents??
+#Updates missing incident-level tweet IDs    
+def refresh_incident_tweet_ids():
+    df = get_incident_df()
+
+    #Getting existing tweet IDs
+    df_ids = df[df['incident_tweet_id'].notnull()][['incident_number','incident_tweet_id']]
+
+    #Using map function to apply val across all records for incident number
+    df['incident_tweet_id'] = df['incident_number'].map(df_ids.set_index('incident_number')['incident_tweet_id'])
+
+    save_incident_df(df)
+
 
 #Function to create new tweets about incidents
 
 #Function to create new replies providing updates on incidents
-
-
