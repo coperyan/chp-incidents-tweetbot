@@ -3,6 +3,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+import time
 
 from chp_data import get_chp_centers, get_incident_df, save_incident_df
 
@@ -64,13 +65,17 @@ for center in chp_centers:
                 break
 
         #Click detail href and expand details - sometimes this fails and we need to try twice
-        detail_href = incident_row.find_element_by_tag_name('a')
-        detail_href.click()
         try:
+            detail_href = incident_row.find_element_by_tag_name('a')
+            detail_href.click()
             incident_data = driver.find_element_by_id('pnlDetails')
         except:
-            #time.sleep(2)
+            time.sleep(10)
+            detail_href = incident_row.find_element_by_tag_name('a')
+            detail_href.click()
             incident_data = driver.find_element_by_id('pnlDetails')
+
+        #Find detail table, collect master incident info
         incident_info = driver.find_element_by_id('tblDetails')
         incident_details = incident_info.find_elements_by_tag_name('tr')
         incident_num = incident_data.find_element_by_id('lblIncident').text
