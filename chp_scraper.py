@@ -4,7 +4,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
-from chp_data import get_chp_centers, get_incident_df
+from chp_data import get_chp_centers, get_incident_df, save_incident_df
 
 driver_path = '/Users/rcope/Downloads/chromedriver'
 incidents_url = 'https://cad.chp.ca.gov/Traffic.aspx'
@@ -63,10 +63,14 @@ for center in chp_centers:
                 incident_row = row
                 break
 
-        #Click detail href and expand details
+        #Click detail href and expand details - sometimes this fails and we need to try twice
         detail_href = incident_row.find_element_by_tag_name('a')
         detail_href.click()
-        incident_data = driver.find_element_by_id('pnlDetails')
+        try:
+            incident_data = driver.find_element_by_id('pnlDetails')
+        except:
+            #time.sleep(2)
+            incident_data = driver.find_element_by_id('pnlDetails')
         incident_info = driver.find_element_by_id('tblDetails')
         incident_details = incident_info.find_elements_by_tag_name('tr')
         incident_num = incident_data.find_element_by_id('lblIncident').text
@@ -81,63 +85,51 @@ for center in chp_centers:
             incident_lng = ''
 
         #Get activity for each incident
+        activity_ctr = 0
         activity_type = ''
         for activity in incident_details:
             if activity.text == 'Detail Information' or activity.text == 'Unit Information':
                 activity_type = activity.text
                 continue
             else:
+                activity_ctr += 1
                 activity_data = activity.find_elements_by_tag_name('td')
                 if activity_data[0].text == 'NO DETAILS':
+                    activity_id = activity_ctr
                     activity_dt = ''
                     activity_entry_num = ''
                     activity_text = ''
                 else:
+                    activity_id = activity_ctr
                     activity_dt = activity_data[0].text
                     activity_entry_num = activity_data[1].text
                     activity_text = activity_data[2].text
 
-                #Add data to dataframe
-                incident_df.loc[len(incident_df)] = [
-                    center,
-                    incident_num,
-                    incident_type,
-                    incident_loc,
-                    incident_loc_desc,
-                    incident_lat,
-                    incident_lng,
-                    activity_type,
-                    activity_dt,
-                    activity_entry_num,
-                    activity_text
-                ]
+                #Creating master key (incident, activity)
+                incident_activity_id = '{}_{}'.format(incident_num,activity_id)
+
+                #If not already in data, add to dataframe
+                if incident_activity_id not in incident_df['incident_activity_id'].values:
+                    incident_df.loc[len(incident_df)] = [
+                        incident_activity_id,
+                        center,
+                        incident_num,
+                        incident_type,
+                        incident_loc,
+                        incident_loc_desc,
+                        incident_lat,
+                        incident_lng,
+                        activity_id,
+                        activity_type,
+                        activity_dt,
+                        activity_entry_num,
+                        activity_text,
+                        '',
+                        ''
+                    ]
+
+save_incident_df(incident_df)
                 
 
 #get_incidents()
 
-
-##TESTING
-
-# driver = get_driver()
-# driver.get(incidents_url)
-# test = Select(driver.find_element_by_id('ddlComCenter'))
-# test.select_by_visible_text('Chico')
-# auto_refresh = driver.find_element_by_id('chkAutoRefresh')
-# auto_refresh.click()
-# table = driver.find_element_by_id('gvIncidents')
-# rows = table.find_elements_by_tag_name('tr')
-# rows = rows[1:]
-
-# row_test = rows[1] #rows[0] is header
-# row_detail = row_test.find_element_by_tag_name('a')
-# row_detail.click()
-# detail_data = driver.find_element_by_id('pnlDetails')
-# incident_num = detail_data.find_element_by_id('lblIncident').text
-# incident_type = detail_data.find_element_by_id('lblType').text
-# incident_loc = detail_data.find_element_by_id('lblLocation').text
-# incident_loc_desc = detail_data.find_element_by_id('lblLocationDesc').text
-# incident_lat = detail_data.find_element_by_id('lblLatLon').text.split(' ')[0]
-# incident_lng = detail_data.find_element_by_id('lblLatLon').text.split(' ')[1]
-# detail_table = driver.find_element_by_id('tblDetails')
-# detail_table_rows = detail_table.find_elements_by_tag_name('tr')
-#need to loop over rows - detail first, then units assigned (header will tell us what changes)
