@@ -1,3 +1,5 @@
+import twitter
+
 
 #twitter bot auth using creds in json file
 
