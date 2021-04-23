@@ -1,6 +1,8 @@
 import twitter
 import json
 
+from chp_data import get_incident_df
+
 def get_creds():
     with open('creds.json', 'r') as j:
         contents = json.loads(j.read())
@@ -14,7 +16,15 @@ def get_twitter_api():
                     access_token_secret = creds['twitterAccessSecret'])
     return api
 
+def get_incident_format(incident):
+    incident_text = ''
+
+#def create_tweet(incident):
+
+incident_df = get_incident_df()
+test_dict = incident_df.loc[0].to_dict()
 api = get_twitter_api()
+status = api.PostUpdate()
     
 
 
