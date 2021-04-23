@@ -17,7 +17,11 @@ def get_twitter_api():
     return api
 
 def get_incident_format(incident):
-    incident_text = ''
+    incident_text = """%s - %s - %s -%s"""
+    % (incident['chp_center'],
+    % (incident['incident_area'])
+    incident['incident_type'],
+    incident['incident_location'])
 
 #def create_tweet(incident):
 
