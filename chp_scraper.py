@@ -93,6 +93,8 @@ def get_incidents():
                 incident_lat = ''
                 incident_lng = ''
 
+            #NEED TO ADD INCIDENT AREA, find class gvSelected, all td's, by index
+
             #Adding to incident df
             if incident_id not in incident_df['incident_id'].values:
                 incident_df.loc[len(incident_df)] = [
