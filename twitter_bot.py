@@ -23,6 +23,12 @@ def get_incident_format(incident):
     incident['incident_type'],
     incident['incident_location'])
 
+    # MAY NEED TO ADD SPLIT FOR CHARACTER LIMITS
+
+def get_activity_format(activity):
+    return None
+
+
 #def create_tweet(incident):
 
 incident_df = get_incident_df()
