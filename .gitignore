@@ -1,4 +1,6 @@
 creds.json
 .DS_Store
 /__pycache__
-/data/incident_data.csv
+/data/incident_data_backup.csv
+/data/incidents.csv
+/data/incident_activity.csv
