@@ -100,6 +100,7 @@ for center in chp_centers:
         selected_info = driver.find_element_by_class_name('gvSelected')
         selected_values = selected_info.find_elements_by_tag_name('td')
         incident_area = selected_values[6].text
+        incident_time = selected_values[2].text
 
         #Adding to incident df
         if incident_id not in incident_df['incident_id'].values:
@@ -112,6 +113,7 @@ for center in chp_centers:
                 incident_loc,
                 incident_loc_desc,
                 incident_area,
+                incident_time,
                 incident_lat,
                 incident_lng,
                 ''
