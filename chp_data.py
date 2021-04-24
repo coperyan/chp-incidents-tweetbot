@@ -2,7 +2,10 @@ import os
 import pandas as pd
 import time 
 
-from twitter_bot import create_tweet
+from twitter_bot import create_tweet, create_tweet_reply
+
+#Setting off data truncation
+pd.set_option('display.max_colwidth', -1)
 
 chp_centers_dir = 'data/chp_communications_centers.csv'
 incident_dir = 'data/incidents.csv'
@@ -123,3 +126,19 @@ untweeted_activity = get_untweeted_activity()
 untweeted_ct = len(untweeted_activity)
 untweeted_ctr = 0
 
+#Iterate over untweeted activity
+#Create tweet
+#Store ID in activity DF
+for index, row in untweeted_activity.iterrows():
+    untweeted_ctr += 1
+    iter_dict = untweeted_activity.loc[index].to_dict()
+    iter_id = create_tweet_reply(iter_dict)
+    iter_activity_id = row['incident_activity_id']
+    incident_activity_df.loc[incident_activity_df.incident_activity_id == iter_activity_id,'activity_tweet_id'] = iter_id
+    time.sleep(1)
+    print('Tweeted {} of {} new activity..'.format(untweeted_ctr,untweeted_ct))
+    if untweeted_ctr >= 10:
+        break  
+
+#Save incident activity df progress
+save_incident_activity_df(incident_activity_df)
