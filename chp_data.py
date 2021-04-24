@@ -1,11 +1,12 @@
 import os
 import pandas as pd
-import time 
+import time
+import numpy as np
 
 from twitter_bot import create_tweet, create_tweet_reply
 
 #Setting off data truncation
-pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', None)
 
 chp_centers_dir = 'data/chp_communications_centers.csv'
 incident_dir = 'data/incidents.csv'
@@ -37,6 +38,8 @@ def get_incident_df():
     return df
 
 def save_incident_df(df):
+    df['incident_tweet_id'] = df[['incident_tweet_id']].fillna(value=0)
+    df.incident_tweet_id = df.incident_tweet_id.astype('int')
     df.to_csv(incident_dir,index=None)
 
 def get_incident_activity_df():
@@ -44,6 +47,10 @@ def get_incident_activity_df():
     return df
 
 def save_incident_activity_df(df):
+    df['incident_tweet_id'] = df[['incident_tweet_id']].fillna(value=0)
+    df.incident_tweet_id = df.incident_tweet_id.astype('int')
+    df['activity_tweet_id'] = df[['activity_tweet_id']].fillna(value=0)
+    df.activity_tweet_id = df.activity_tweet_id.astype('int')
     df.to_csv(incident_activity_dir,index=None)
 
 #Updates missing incident-level tweet IDs    
@@ -61,7 +68,7 @@ def refresh_incident_tweet_ids():
 #Get all incidents that haven't been tweeted
 def get_untweeted_incidents():
     df = get_incident_df()
-    df = df[df['incident_tweet_id'].isna()]
+    df = df[df['incident_tweet_id'] == 0]
     df = df[df['incident_type'].isin(type_exclusions) == False]  
     return df
 
@@ -71,13 +78,13 @@ def get_untweeted_activity():
     df2 = get_incident_activity_df()
     
     #Get rid of all tweeted activity
-    df2 = df2[df2['activity_tweet_id'].isna()]
+    df2 = df2[df2['activity_tweet_id'] == 0]
 
     #Exclude activity types 
     df2 = df2[df2['activity_type'].isin(activity_exclusions) == False]
     
     #Getting tweeted incidents
-    tweeted_incidents = df[df['incident_tweet_id'].notnull()][['incident_id','incident_tweet_id']]
+    tweeted_incidents = df[df['incident_tweet_id'] != 0][['incident_id','incident_tweet_id']]
     
     #Merging tweeted incidents to populate the incident tweet ID
     df2 = df2.merge(tweeted_incidents,how='inner',on='incident_id')
@@ -90,55 +97,52 @@ def get_untweeted_activity():
     return df2
 
     
+def create_new_tweets():
+    #Get initial DFs
+    incident_df = get_incident_df()
+    incident_activity_df = get_incident_activity_df()
 
-#Function to create new tweets about incidents
+    #Get untweeted incidents
+    untweeted_incidents = get_untweeted_incidents()
+    untweeted_ct = len(untweeted_incidents)
+    untweeted_ctr = 0 
 
-#Function to create new replies providing updates on incidents
+    #Iterate over untweeted incidents
+    #Create tweet
+    #Store ID in incident df
+    for index, row in untweeted_incidents.iterrows():
+        untweeted_ctr += 1
+        iter_dict = untweeted_incidents.loc[index].to_dict()
+        iter_id = create_tweet(iter_dict)
+        iter_incident_id = row['incident_id']
+        incident_df.loc[incident_df.incident_id == iter_incident_id, 'incident_tweet_id'] = iter_id
+        time.sleep(1)
+        print('Tweeted {} of {} new incidents..'.format(untweeted_ctr,untweeted_ct))
+        if untweeted_ctr >= 10:
+            break
 
-#Get initial DFs
-incident_df = get_incident_df()
-incident_activity_df = get_incident_activity_df()
+    #Save incident df progress
+    save_incident_df(incident_df)
 
-#Get untweeted incidents
-untweeted_incidents = get_untweeted_incidents()
-untweeted_ct = len(untweeted_incidents)
-untweeted_ctr = 0 
+    #Get all untweeted activity
+    untweeted_activity = get_untweeted_activity()
+    untweeted_ct = len(untweeted_activity)
+    untweeted_ctr = 0
 
-#Iterate over untweeted incidents
-#Create tweet
-#Store ID in incident df
-for index, row in untweeted_incidents.iterrows():
-    untweeted_ctr += 1
-    iter_dict = untweeted_incidents.loc[index].to_dict()
-    iter_id = create_tweet(iter_dict)
-    iter_incident_id = row['incident_id']
-    incident_df.loc[incident_df.incident_id == iter_incident_id, 'incident_tweet_id'] = iter_id
-    time.sleep(1)
-    print('Tweeted {} of {} new incidents..'.format(untweeted_ctr,untweeted_ct))
-    if untweeted_ctr >= 10:
-        break
+    #Iterate over untweeted activity
+    #Create tweet
+    #Store ID in activity DF
+    for index, row in untweeted_activity.iterrows():
+        untweeted_ctr += 1
+        iter_dict = untweeted_activity.loc[index].to_dict()
+        iter_id = create_tweet_reply(iter_dict)
+        iter_activity_id = row['incident_activity_id']
+        incident_activity_df.loc[incident_activity_df.incident_activity_id == iter_activity_id,'activity_tweet_id'] = iter_id
+        time.sleep(1)
+        print('Tweeted {} of {} new activity..'.format(untweeted_ctr,untweeted_ct))
+        if untweeted_ctr >= 10:
+            break  
 
-#Save incident df progress
-save_incident_df(incident_df)
+    #Save incident activity df progress
+    save_incident_activity_df(incident_activity_df)
 
-#Get all untweeted activity
-untweeted_activity = get_untweeted_activity()
-untweeted_ct = len(untweeted_activity)
-untweeted_ctr = 0
-
-#Iterate over untweeted activity
-#Create tweet
-#Store ID in activity DF
-for index, row in untweeted_activity.iterrows():
-    untweeted_ctr += 1
-    iter_dict = untweeted_activity.loc[index].to_dict()
-    iter_id = create_tweet_reply(iter_dict)
-    iter_activity_id = row['incident_activity_id']
-    incident_activity_df.loc[incident_activity_df.incident_activity_id == iter_activity_id,'activity_tweet_id'] = iter_id
-    time.sleep(1)
-    print('Tweeted {} of {} new activity..'.format(untweeted_ctr,untweeted_ct))
-    if untweeted_ctr >= 10:
-        break  
-
-#Save incident activity df progress
-save_incident_activity_df(incident_activity_df)
