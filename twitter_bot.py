@@ -27,6 +27,9 @@ def get_incident_format(incident):
     if len(incident['incident_area']) > 0 and incident['incident_area'] != incident['chp_center']:
         tweet_text = '{}{}, '.format(tweet_text,incident['incident_area'])
     tweet_text = '{}{} CHP'.format(tweet_text,incident['chp_center'])
+    tweet_text = '{}\n#CHP #CHP{}'.format(tweet_text,incident['chp_center'].replace(' ',''))
+    if len(incident['incident_area']) > 0 and incident['incident_area'] != incident['chp_center']:
+        tweet_text='{} #{}'.format(tweet_text,incident['incident_area'].replace(' ',''))
     return tweet_text
    
 
@@ -53,14 +56,16 @@ def create_tweet_reply(activity):
     status = api.PostUpdate(tweet_text,in_reply_to_status_id=incident_tweet_id)
     return status._json['id_str']
 
-
+'''
+test_id = '1385776873980923905'
 api = get_twitter_api()
-test = api.GetStatus(test)
+test_check = api.GetStatus(test_id)
 
-test2 = api.PostUpdate("Test Reply",in_reply_to_status_id=test)
-
+test_post = api.PostUpdate("Test Reply",in_reply_to_status_id=test_id)
+'''
 
 '''
+api = get_twitter_api()
 tweets = api.GetUserTimeline('1384728473319579649') 
 for tweet in tweets:
     id_str = tweet._json['id_str']
