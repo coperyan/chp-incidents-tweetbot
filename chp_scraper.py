@@ -116,7 +116,7 @@ for center in chp_centers:
                 incident_time,
                 incident_lat,
                 incident_lng,
-                ''
+                0
             ]
             print('Added {} new incident(s) for {}'.format(new_incident_ctr,center))
 
@@ -155,8 +155,8 @@ for center in chp_centers:
                         activity_dt,
                         activity_entry_num,
                         activity_text,
-                        '',
-                        ''
+                        0,
+                        0
                     ]
                     print('Added {} new activity for {}'.format(new_activity_ctr,center))
 
