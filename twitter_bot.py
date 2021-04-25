@@ -2,7 +2,7 @@ import twitter
 import json
 
 def get_creds():
-    with open('creds.json', 'r') as j:
+    with open('creds/creds.json', 'r') as j:
         contents = json.loads(j.read())
     return contents
 
