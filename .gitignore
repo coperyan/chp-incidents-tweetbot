@@ -1,4 +1,4 @@
-creds.json
+/creds
 .DS_Store
 /__pycache__
 /data/incident_data_backup.csv
