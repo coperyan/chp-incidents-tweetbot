@@ -5,15 +5,15 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 import time
 
-from chp_data import get_chp_centers, get_incident_df, save_incident_df
-from chp_data import get_incident_activity_df, save_incident_activity_df
+from chp_data import get_chp_centers, upload_incident
+from chp_data import get_activity_exclusions, get_type_exclusions
 
 driver_path = '/Users/rcope/Downloads/chromedriver'
 incidents_url = 'https://cad.chp.ca.gov/Traffic.aspx'
 
 chp_centers = get_chp_centers()
-incident_df = get_incident_df()
-incident_activity_df = get_incident_activity_df()
+activity_exclusions = get_activity_exclusions()
+type_exclusions = get_type_exclusions()
 
 ignored_exceptions=(NoSuchElementException,StaleElementReferenceException,)
 
@@ -102,66 +102,82 @@ for center in chp_centers:
         incident_area = selected_values[6].text
         incident_time = selected_values[2].text
 
-        #Adding to incident df
-        if incident_id not in incident_df['incident_id'].values:
-            new_incident_ctr += 1
-            incident_df.loc[len(incident_df)] = [
-                incident_id,
-                center,
-                incident_num,
-                incident_type,
-                incident_loc,
-                incident_loc_desc,
-                incident_area,
-                incident_time,
-                incident_lat,
-                incident_lng,
-                0
-            ]
-            print('Added {} new incident(s) for {}'.format(new_incident_ctr,center))
+        #Excluding incident types
+        if incident_type in type_exclusions:
+            continue
 
-        #Get activity for each incident
+        #Adding to incident df
+        new_incident_ctr += 1
+        incident_dict = {
+            'incident_id': incident_id,
+            'chp_center': center,
+            'incident_number': int(incident_num),
+            'incident_type': incident_type,
+            'incident_location': incident_loc,
+            'incident_location_description': incident_loc_desc,
+            'incident_area': incident_area,
+            'incident_time': incident_time,
+            'incident_lat': incident_lat,
+            'incident_lng': incident_lng,
+            'incident_tweet_id': 0
+        }
+        print('Added {} new incident(s) for {}'.format(new_incident_ctr,center))
+
+        #To be used in activity loop
+        activity_list = []
         activity_ctr = 0
         activity_type = ''
+        
+        #Get activity for each incident
         for activity in incident_details:
             if activity.text == 'Detail Information' or activity.text == 'Unit Information':
                 activity_type = activity.text
+                if 'Detail' in activity_type:
+                    activity_type_id = 1
+                elif 'Unit' in activity_type:
+                    activity_type_id = 2
+                else:
+                    activity_type_id = 3
                 continue
             else:
                 activity_ctr += 1
                 activity_data = activity.find_elements_by_tag_name('td')
                 if activity_data[0].text == 'NO DETAILS':
-                    activity_id = activity_ctr
                     activity_dt = ''
-                    activity_entry_num = ''
+                    activity_entry_num = 0
                     activity_text = ''
+                    activity_id = '{}_{}'.format(activity_type_id,activity_entry_num)
                 else:
-                    activity_id = activity_ctr
                     activity_dt = activity_data[0].text
                     activity_entry_num = activity_data[1].text
                     activity_text = activity_data[2].text
+                    activity_id = '{}_{}'.format(activity_type_id,activity_entry_num)
+
+                #Excluding activity types
+                if activity_type in activity_exclusions:
+                    continue
 
                 #Creating master key (incident, activity)
-                incident_activity_id = '{}_{}_{}'.format(center,incident_num,activity_id)
+                incident_activity_id = '{}_{}_{}_{}'.format(center,incident_num,activity_type_id,activity_entry_num)
 
-                #If not already in data, add to dataframe
-                if incident_activity_id not in incident_activity_df['incident_activity_id'].values:
-                    new_activity_ctr += 1
-                    incident_activity_df.loc[len(incident_activity_df)] = [
-                        incident_activity_id,
-                        incident_id,
-                        activity_id,
-                        activity_type,
-                        activity_dt,
-                        activity_entry_num,
-                        activity_text,
-                        0,
-                        0
-                    ]
-                    print('Added {} new activity for {}'.format(new_activity_ctr,center))
+                #If not already in data, add to dict
+                new_activity_ctr += 1
+                activity_dict = {
+                    'incident_activity_id': incident_activity_id,
+                    'activity_id': activity_id,
+                    'activity_type': activity_type,
+                    'activity_dt': activity_dt,
+                    'activity_num': int(activity_entry_num),
+                    'activity_text': activity_text,
+                    'activity_tweet_id': 0
+                }
+                activity_list.append(activity_dict)
+                print('Added {} new activity for {}'.format(new_activity_ctr,center))
+        
+        #Uploading incident
+        incident_dict['activity'] = activity_list
+        upload_incident(incident_dict)
 
-save_incident_df(incident_df)
-save_incident_activity_df(incident_activity_df)
                 
 
 
