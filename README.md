@@ -6,7 +6,7 @@
 
 [Firebase Hosting](https://firebase.google.com/docs/hosting)
 
-[CHP Traffic Data](https://cad.chp.ca(.gov/Traffic.aspx)
+[CHP Traffic Data](https://cad.chp.ca.gov/Traffic.aspx)
 
 [Twitter API](https://developer.twitter.com/en/docs/twitter-api)
 
