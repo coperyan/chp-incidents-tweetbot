@@ -2,6 +2,9 @@ import os
 import pandas as pd
 import time
 import numpy as np
+import json
+import firebase_admin
+from firebase_admin import db
 
 from twitter_bot import create_tweet, create_tweet_reply
 
@@ -28,6 +31,20 @@ type_exclusions = [
 activity_exclusions = [
     'Unit Information'
 ]
+
+def get_type_exclusions():
+    return type_exclusions
+
+def get_activity_exclusions():
+    return activity_exclusions
+
+def get_firebase():
+    with open('creds/database.json', 'r') as j:
+        contents = json.loads(j.read())
+    database_url = contents['databaseURL']
+    cred_obj = firebase_admin.credentials.Certificate('creds/firebase_secret.json')
+    default_app = firebase_admin.initialize_app(cred_obj, {'databaseURL':database_url})
+    return default_app
 
 def get_chp_centers():
     df = pd.read_csv(chp_centers_dir,header=None)
@@ -146,3 +163,74 @@ def create_new_tweets():
     #Save incident activity df progress
     save_incident_activity_df(incident_activity_df)
 
+#Add incident to firebase
+def upload_incident(incident_dict):
+
+    #Extracting activity list from dict and removing
+    activity_list = incident_dict['activity']
+    incident_dict.pop('activity')
+
+    #Setting reference to main incidents
+    ref = db.reference('/Incidents')
+
+    #Adding record and naming based on incident ID
+    ref.child(incident_dict['incident_id']).set(incident_dict)
+    
+    #Setting new reference based on incident we just added 
+    ref = db.reference('/Incidents/{}/activity'.format(incident_dict['incident_id']))
+    
+    #Looping through activity and adding
+    for activity in activity_list:
+        ref.child(activity['incident_activity_id']).set(activity)
+
+
+#Initializing firebase
+get_firebase()
+
+## Need to create JSON from dataframes
+## First dict will have the entire incident-level info from there
+## One of the dict keys will be activity, and within activity there will be a list of activity dicts
+## Can import manually from there
+
+
+# incident_df = get_incident_df()
+# incident_activity_df = get_incident_activity_df()
+# data_dict_list = []
+
+# for index, row in incident_df.iterrows():
+#     iter_activity_list = []
+#     iter_dict = row.to_dict()
+#     iter_activity_df = incident_activity_df[incident_activity_df.incident_id == row['incident_id']]
+#     for index1, row1 in iter_activity_df.iterrows():
+#         iter_activity_list.append(row1.to_dict())
+#     iter_dict['activity'] = iter_activity_list
+#     data_dict_list.append(iter_dict)
+
+# test = {}
+# test['Incidents'] = data_dict_list
+
+# output_file = 'data/data.json'
+# with open(output_file,'w') as f:
+#     json.dump(test,f)
+
+
+# dict_list = []
+# incident_dict = incident_df[incident_df.incident_id=='Ventura_00139'].iloc[0].to_dict()
+# incident_dict['activity'] = []
+# incident_activity = incident_activity_df[incident_activity_df.incident_id == 'Ventura_00139']
+# for index, row in incident_activity.iterrows():
+#     dict_list.append(row.to_dict())
+
+# incident_dict['activity'] = dict_list
+
+# ref = db.reference('/')
+# ref.set({'Incidents':{}})
+# ref = db.reference('/Incidents')
+# for key, value in incident_dict.items():
+#     if type(value) == np.int64:
+#         print(value)
+
+# incident_dict['incident_number'] = int(incident_dict['incident_number'])
+# incident_dict['incident_tweet_id'] = int(incident_dict['incident_tweet_id'])
+ 
+# ref.child(incident_dict['incident_id']).set(incident_dict)
