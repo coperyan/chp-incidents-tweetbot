@@ -7,19 +7,25 @@ import time
 
 from chp_data import get_chp_centers, upload_incident
 from chp_data import get_activity_exclusions, get_type_exclusions
+from chp_data import get_existing_activity, get_existing_incidents
 
 driver_path = '/Users/rcope/Downloads/chromedriver'
 incidents_url = 'https://cad.chp.ca.gov/Traffic.aspx'
-
-chp_centers = get_chp_centers()
-activity_exclusions = get_activity_exclusions()
-type_exclusions = get_type_exclusions()
 
 ignored_exceptions=(NoSuchElementException,StaleElementReferenceException,)
 
 #Function to get incidents
 #Update dataframes with NEW incidents or activity
 #def get_incidents():
+chp_centers = get_chp_centers()
+chp_centers = ['Golden Gate']
+
+activity_exclusions = get_activity_exclusions()
+type_exclusions = get_type_exclusions()
+
+existing_activity = get_existing_activity()
+existing_incidents = get_existing_incidents()
+
 driver = webdriver.Chrome(executable_path=driver_path)
 driver.get(incidents_url)
 
@@ -107,7 +113,6 @@ for center in chp_centers:
             continue
 
         #Adding to incident df
-        new_incident_ctr += 1
         incident_dict = {
             'incident_id': incident_id,
             'chp_center': center,
@@ -121,7 +126,6 @@ for center in chp_centers:
             'incident_lng': incident_lng,
             'incident_tweet_id': 0
         }
-        print('Added {} new incident(s) for {}'.format(new_incident_ctr,center))
 
         #To be used in activity loop
         activity_list = []
@@ -161,22 +165,37 @@ for center in chp_centers:
                 incident_activity_id = '{}_{}_{}_{}'.format(center,incident_num,activity_type_id,activity_entry_num)
 
                 #If not already in data, add to dict
-                new_activity_ctr += 1
-                activity_dict = {
-                    'incident_activity_id': incident_activity_id,
-                    'activity_id': activity_id,
-                    'activity_type': activity_type,
-                    'activity_dt': activity_dt,
-                    'activity_num': int(activity_entry_num),
-                    'activity_text': activity_text,
-                    'activity_tweet_id': 0
-                }
-                activity_list.append(activity_dict)
-                print('Added {} new activity for {}'.format(new_activity_ctr,center))
+                if incident_activity_id not in existing_activity:
+                    new_activity_ctr += 1
+                    activity_dict = {
+                        'incident_activity_id': incident_activity_id,
+                        'activity_id': activity_id,
+                        'activity_type': activity_type,
+                        'activity_dt': activity_dt,
+                        'activity_num': int(activity_entry_num),
+                        'activity_text': activity_text,
+                        'activity_tweet_id': 0
+                    }
+                    activity_list.append(activity_dict)
+        
+        #Check to make sure incident does not exist OR activity list contains items
+        if incident_id not in existing_incidents:
+            new_incident = True
+            new_incident_ctr += 1
+            print('Added {} new incident(s) for {}'.format(new_incident_ctr,center))
+        else:
+            new_incident = False
+
+        if len(activity_list) > 0:
+            new_activity = True
+            print('Added {} new activity for {}'.format(new_activity_ctr,center))
+        else:
+            new_activity = False
         
         #Uploading incident
-        incident_dict['activity'] = activity_list
-        upload_incident(incident_dict)
+        if new_incident or new_activity:
+            incident_dict['activity'] = activity_list
+            upload_incident(incident_dict,new_incident,new_activity)
 
                 
 
