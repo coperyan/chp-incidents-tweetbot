@@ -5,6 +5,7 @@ import numpy as np
 import json
 import firebase_admin
 from firebase_admin import db
+from datetime import timedelta, datetime
 
 from twitter_bot import create_tweet, create_tweet_reply
 
@@ -31,6 +32,12 @@ type_exclusions = [
 activity_exclusions = [
     'Unit Information'
 ]
+
+def get_data_age(time):
+    today_date = datetime.now().date()
+    data_time = datetime.combine(today_date,datetime.strptime(time,'%I:%M %p').time())
+    now_time = datetime.now()
+    return (now_time - data_time) / 60
 
 def get_type_exclusions():
     return type_exclusions
