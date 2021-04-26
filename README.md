@@ -1,15 +1,15 @@
-# chp_incidents_bot
+# CHP Incidents Twitter Bot
 
 # Using
 
-https://firebase.google.com/docs/database
+[Firebase Realtime DB](https://firebase.google.com/docs/database)
 
-https://firebase.google.com/docs/hosting
+[Firebase Hosting](https://firebase.google.com/docs/hosting)
 
-https://cad.chp.ca.gov/Traffic.aspx
+[CHP Traffic Data](https://cad.chp.ca(.gov/Traffic.aspx)
 
-https://developer.twitter.com/en/docs/twitter-api
+[Twitter API](https://developer.twitter.com/en/docs/twitter-api)
 
 # Bot Tweets Here:
 
-https://twitter.com/chp_incidents
+[CHP Incidents](https://twitter.com/chp_incidents)
