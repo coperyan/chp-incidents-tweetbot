@@ -50,48 +50,58 @@ def get_chp_centers():
     df = pd.read_csv(chp_centers_dir,header=None)
     return df[0].tolist()
 
-#Updates missing incident-level tweet IDs    
-def refresh_incident_tweet_ids():
-    df = get_incident_df()
+#Updates incident-level tweet IDs    
+def upload_incident_tweet(incident,tweet_id):
+    ref = db.reference('/Incidents/{}'.format(incident))
+    ref.update({'incident_tweet_id':tweet_id})
 
-    #Getting existing tweet IDs
-    df_ids = df[df['incident_tweet_id'].notnull()][['incident_number','incident_tweet_id']]
-
-    #Using map function to apply val across all records for incident number
-    df['incident_tweet_id'] = df['incident_number'].map(df_ids.set_index('incident_number')['incident_tweet_id'])
-
-    save_incident_df(df)
+#Updates missing activity level tweet IDs
+def upload_activity_tweet(incident,activity,tweet_id):
+    ref = db.reference('/Incidents/{}/activity/{}'.format(incident,activity))
+    ref.update({'activity_tweet_id':tweet_id})
 
 #Get all incidents that haven't been tweeted
 def get_untweeted_incidents():
-    df = get_incident_df()
-    df = df[df['incident_tweet_id'] == 0]
-    df = df[df['incident_type'].isin(type_exclusions) == False]  
-    return df
+    #Get firebase data
+    all_data = get_firebase_data()
+
+    #Create empty list to dump incidents
+    all_data_list = []
+
+    #Iterate over incidents
+    for key, value in all_data.items():
+        #If incident tweet id does not exist 
+        if all_data[key]['incident_tweet_id'] == 0:
+            #Remove activity from return
+            iter_dict = dict(all_data[key]).pop('activity')
+            #Add to list 
+            all_data_list.append(iter_dict)
+    return all_data_list
 
 #Get all incident activity that hasn't been tweeted
 def get_untweeted_activity():
-    df = get_incident_df()
-    df2 = get_incident_activity_df()
-    
-    #Get rid of all tweeted activity
-    df2 = df2[df2['activity_tweet_id'] == 0]
+    #Get firebase data
+    all_data = get_firebase_data()
 
-    #Exclude activity types 
-    df2 = df2[df2['activity_type'].isin(activity_exclusions) == False]
-    
-    #Getting tweeted incidents
-    tweeted_incidents = df[df['incident_tweet_id'] != 0][['incident_id','incident_tweet_id']]
-    
-    #Merging tweeted incidents to populate the incident tweet ID
-    df2 = df2.merge(tweeted_incidents,how='inner',on='incident_id')
-    df2 = df2.drop(columns=['incident_tweet_id_x'])
-    df2.rename(columns={'incident_tweet_id_y':'incident_tweet_id'},inplace=True)
+    #Create empty list to dump activity dicts
+    all_data_list = []
 
-    #Resorting by incident_id, activity_num
-    df2 = df2.sort_values(by=['incident_id','activity_num'],ascending=[True,True])
+    #Iterate over incidents
+    for key, value in all_data.items():
+        #Activity of incident 
+        iter_dict = all_data[key]['activity']
+        #Iterating over activity
+        for key1, value1 in iter_dict.items():
+            #If activity tweet id does not exist and incident tweet id does exist
+            if iter_dict[key1]['activity_tweet_id'] == 0 and all_data[key]['incident_tweet_id'] != 0:
+                #Create dict with activity, no reference
+                iter_dict_2 = dict(iter_dict[key1])
+                #Adding parent incident tweet
+                iter_dict_2['incident_tweet_id'] = all_data[key]['incident_tweet_id']
+                #Appending to list
+                all_data_list.append(iter_dict_2)
 
-    return df2
+    return all_data_list
 
     
 def create_new_tweets():
