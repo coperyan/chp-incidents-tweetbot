@@ -57,15 +57,51 @@ def get_chp_centers():
     df = pd.read_csv(chp_centers_dir,header=None)
     return df[0].tolist()
 
-#Updates incident-level tweet IDs    
-def upload_incident_tweet(incident,tweet_id):
-    ref = db.reference('/Incidents/{}'.format(incident))
-    ref.update({'incident_tweet_id':tweet_id})
+#Get incidents from firebase
+def get_firebase_data():
+    ref = db.reference('/Incidents')
+    query_results = ref.get()
+    return query_results
 
-#Updates missing activity level tweet IDs
-def upload_activity_tweet(incident,activity,tweet_id):
-    ref = db.reference('/Incidents/{}/activity/{}'.format(incident,activity))
-    ref.update({'activity_tweet_id':tweet_id})
+#Add incident to firebase
+def upload_incident(incident_dict,new_incident,new_activity):
+
+    #Extracting activity list from dict and removing
+    activity_list = incident_dict['activity']
+
+    #New incident
+    if new_incident:
+        incident_dict.pop('activity')
+
+        #Setting reference to main incidents
+        ref = db.reference('/Incidents')
+
+        #Adding record and naming based on incident ID
+        ref.child(incident_dict['incident_id']).set(incident_dict)
+
+    #Updating activity
+    if new_activity:
+        #Setting new reference based on incident we just added 
+        ref = db.reference('/Incidents/{}/activity'.format(incident_dict['incident_id']))
+        
+        #Looping through activity and adding
+        for activity in activity_list:
+            ref.child(activity['incident_activity_id']).set(activity)
+
+#Get list of existing incidents
+def get_existing_incidents():
+    all_data = get_firebase_data()
+    return list(all_data.keys())
+    
+#Get list of existing activity
+def get_existing_activity():
+    all_data = get_firebase_data()
+    activity_list = []
+    for key, value in all_data.items():
+        iter_activity = all_data[key]['activity']
+        for key in iter_activity.keys():
+            activity_list.append(key)
+    return activity_list
 
 #Get all incidents that haven't been tweeted
 def get_untweeted_incidents():
@@ -109,6 +145,16 @@ def get_untweeted_activity():
                 all_data_list.append(iter_dict_2)
 
     return all_data_list
+
+#Updates incident-level tweet IDs    
+def upload_incident_tweet(incident,tweet_id):
+    ref = db.reference('/Incidents/{}'.format(incident))
+    ref.update({'incident_tweet_id':tweet_id})
+
+#Updates missing activity level tweet IDs
+def upload_activity_tweet(incident,activity,tweet_id):
+    ref = db.reference('/Incidents/{}/activity/{}'.format(incident,activity))
+    ref.update({'activity_tweet_id':tweet_id})
 
     
 def create_new_tweets():
@@ -160,51 +206,6 @@ def create_new_tweets():
     #Save incident activity df progress
     save_incident_activity_df(incident_activity_df)
 
-#Add incident to firebase
-def upload_incident(incident_dict,new_incident,new_activity):
-
-    #Extracting activity list from dict and removing
-    activity_list = incident_dict['activity']
-
-    #New incident
-    if new_incident:
-        incident_dict.pop('activity')
-
-        #Setting reference to main incidents
-        ref = db.reference('/Incidents')
-
-        #Adding record and naming based on incident ID
-        ref.child(incident_dict['incident_id']).set(incident_dict)
-
-    #Updating activity
-    if new_activity:
-        #Setting new reference based on incident we just added 
-        ref = db.reference('/Incidents/{}/activity'.format(incident_dict['incident_id']))
-        
-        #Looping through activity and adding
-        for activity in activity_list:
-            ref.child(activity['incident_activity_id']).set(activity)
-
-#Get incidents from firebase
-def get_firebase_data():
-    ref = db.reference('/Incidents')
-    query_results = ref.get()
-    return query_results
-
-#Get list of existing incidents
-def get_existing_incidents():
-    all_data = get_firebase_data()
-    return list(all_data.keys())
-    
-#Get list of existing activity
-def get_existing_activity():
-    all_data = get_firebase_data()
-    activity_list = []
-    for key, value in all_data.items():
-        iter_activity = all_data[key]['activity']
-        for key in iter_activity.keys():
-            activity_list.append(key)
-    return activity_list
 
 #Initializing firebase
 get_firebase()
