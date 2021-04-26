@@ -50,26 +50,6 @@ def get_chp_centers():
     df = pd.read_csv(chp_centers_dir,header=None)
     return df[0].tolist()
 
-def get_incident_df():
-    df = pd.read_csv(incident_dir)
-    return df
-
-def save_incident_df(df):
-    df['incident_tweet_id'] = df[['incident_tweet_id']].fillna(value=0)
-    df.incident_tweet_id = df.incident_tweet_id.astype('int')
-    df.to_csv(incident_dir,index=None)
-
-def get_incident_activity_df():
-    df = pd.read_csv(incident_activity_dir)
-    return df
-
-def save_incident_activity_df(df):
-    df['incident_tweet_id'] = df[['incident_tweet_id']].fillna(value=0)
-    df.incident_tweet_id = df.incident_tweet_id.astype('int')
-    df['activity_tweet_id'] = df[['activity_tweet_id']].fillna(value=0)
-    df.activity_tweet_id = df.activity_tweet_id.astype('int')
-    df.to_csv(incident_activity_dir,index=None)
-
 #Updates missing incident-level tweet IDs    
 def refresh_incident_tweet_ids():
     df = get_incident_df()
@@ -164,25 +144,50 @@ def create_new_tweets():
     save_incident_activity_df(incident_activity_df)
 
 #Add incident to firebase
-def upload_incident(incident_dict):
+def upload_incident(incident_dict,new_incident,new_activity):
 
     #Extracting activity list from dict and removing
     activity_list = incident_dict['activity']
-    incident_dict.pop('activity')
 
-    #Setting reference to main incidents
+    #New incident
+    if new_incident:
+        incident_dict.pop('activity')
+
+        #Setting reference to main incidents
+        ref = db.reference('/Incidents')
+
+        #Adding record and naming based on incident ID
+        ref.child(incident_dict['incident_id']).set(incident_dict)
+
+    #Updating activity
+    if new_activity:
+        #Setting new reference based on incident we just added 
+        ref = db.reference('/Incidents/{}/activity'.format(incident_dict['incident_id']))
+        
+        #Looping through activity and adding
+        for activity in activity_list:
+            ref.child(activity['incident_activity_id']).set(activity)
+
+#Get incidents from firebase
+def get_firebase_data():
     ref = db.reference('/Incidents')
+    query_results = ref.get()
+    return query_results
 
-    #Adding record and naming based on incident ID
-    ref.child(incident_dict['incident_id']).set(incident_dict)
+#Get list of existing incidents
+def get_existing_incidents():
+    all_data = get_firebase_data()
+    return list(all_data.keys())
     
-    #Setting new reference based on incident we just added 
-    ref = db.reference('/Incidents/{}/activity'.format(incident_dict['incident_id']))
-    
-    #Looping through activity and adding
-    for activity in activity_list:
-        ref.child(activity['incident_activity_id']).set(activity)
-
+#Get list of existing activity
+def get_existing_activity():
+    all_data = get_firebase_data()
+    activity_list = []
+    for key, value in all_data.items():
+        iter_activity = all_data[key]['activity']
+        for key in iter_activity.keys():
+            activity_list.append(key)
+    return activity_list
 
 #Initializing firebase
 get_firebase()
