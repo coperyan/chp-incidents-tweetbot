@@ -158,9 +158,6 @@ def upload_activity_tweet(incident,activity,tweet_id):
 
     
 def create_new_tweets():
-    #Get initial DFs
-    incident_df = get_incident_df()
-    incident_activity_df = get_incident_activity_df()
 
     #Get untweeted incidents
     untweeted_incidents = get_untweeted_incidents()
@@ -181,9 +178,6 @@ def create_new_tweets():
         if untweeted_ctr >= 10:
             break
 
-    #Save incident df progress
-    save_incident_df(incident_df)
-
     #Get all untweeted activity
     untweeted_activity = get_untweeted_activity()
     untweeted_ct = len(untweeted_activity)
@@ -203,57 +197,6 @@ def create_new_tweets():
         if untweeted_ctr >= 10:
             break  
 
-    #Save incident activity df progress
-    save_incident_activity_df(incident_activity_df)
-
-
 #Initializing firebase
 get_firebase()
 
-## Need to create JSON from dataframes
-## First dict will have the entire incident-level info from there
-## One of the dict keys will be activity, and within activity there will be a list of activity dicts
-## Can import manually from there
-
-
-# incident_df = get_incident_df()
-# incident_activity_df = get_incident_activity_df()
-# data_dict_list = []
-
-# for index, row in incident_df.iterrows():
-#     iter_activity_list = []
-#     iter_dict = row.to_dict()
-#     iter_activity_df = incident_activity_df[incident_activity_df.incident_id == row['incident_id']]
-#     for index1, row1 in iter_activity_df.iterrows():
-#         iter_activity_list.append(row1.to_dict())
-#     iter_dict['activity'] = iter_activity_list
-#     data_dict_list.append(iter_dict)
-
-# test = {}
-# test['Incidents'] = data_dict_list
-
-# output_file = 'data/data.json'
-# with open(output_file,'w') as f:
-#     json.dump(test,f)
-
-
-# dict_list = []
-# incident_dict = incident_df[incident_df.incident_id=='Ventura_00139'].iloc[0].to_dict()
-# incident_dict['activity'] = []
-# incident_activity = incident_activity_df[incident_activity_df.incident_id == 'Ventura_00139']
-# for index, row in incident_activity.iterrows():
-#     dict_list.append(row.to_dict())
-
-# incident_dict['activity'] = dict_list
-
-# ref = db.reference('/')
-# ref.set({'Incidents':{}})
-# ref = db.reference('/Incidents')
-# for key, value in incident_dict.items():
-#     if type(value) == np.int64:
-#         print(value)
-
-# incident_dict['incident_number'] = int(incident_dict['incident_number'])
-# incident_dict['incident_tweet_id'] = int(incident_dict['incident_tweet_id'])
- 
-# ref.child(incident_dict['incident_id']).set(incident_dict)
