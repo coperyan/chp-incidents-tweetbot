@@ -1,11 +1,13 @@
 import twitter
 import json
 
+#Get twitter creds
 def get_creds():
     with open('creds/creds.json', 'r') as j:
         contents = json.loads(j.read())
     return contents
 
+#Get twitter API object
 def get_twitter_api():
     creds = get_creds()
     api = twitter.Api(consumer_key = creds['twitterApiKey'],
@@ -14,7 +16,7 @@ def get_twitter_api():
                     access_token_secret = creds['twitterAccessSecret'])
     return api
 
-# MAY NEED TO ADD SPLIT FOR CHARACTER LIMITS
+#Get text format for incident
 def get_incident_format(incident):
     tweet_text = ''
     if len(incident['incident_time']) > 0:
@@ -32,14 +34,13 @@ def get_incident_format(incident):
         tweet_text='{} #{}'.format(tweet_text,incident['incident_area'].replace(' ',''))
     return tweet_text
    
-
+#Get text format for activity
 def get_activity_format(activity):
     tweet_text = ''
     if len(activity['activity_dt']) > 0:
         tweet_text = '{}[{}]\n'.format(tweet_text,activity['activity_dt'])
     tweet_text = '{}{}'.format(tweet_text,activity['activity_text'])
     return tweet_text
-
 
 #Function to create tweet with incident dict
 def create_tweet(incident):
@@ -55,24 +56,3 @@ def create_tweet_reply(activity):
     api = get_twitter_api()
     status = api.PostUpdate(tweet_text,in_reply_to_status_id=incident_tweet_id)
     return int(status._json['id'])
-
-'''
-test_id = '1385810330920439811'
-api = get_twitter_api()
-test_check = api.GetStatus(test_id)
-
-test_post = api.PostUpdate("Test Reply",in_reply_to_status_id=test_id)
-'''
-
-'''
-api = get_twitter_api()
-tweets = api.GetUserTimeline('1384728473319579649') 
-for tweet in tweets:
-    id_str = tweet._json['id_str']
-    api.DestroyStatus(id_str)
-'''
-
-#function to add replies to existing incident tweet
-
-#function to create new master tweet for an incident
-
