@@ -41,7 +41,7 @@ def time_check(time):
     data_time = datetime.combine(today_date,datetime.strptime(time,'%I:%M %p').time())
     now_time = datetime.now()
     min_diff = (now_time - data_time).total_seconds() / 60
-    if min_diff >= LIMIT_MINS:
+    if min_diff <= LIMIT_MINS and min_diff > 0:
         return True
     else:
         return False
@@ -97,18 +97,24 @@ def upload_incident(incident_dict,new_incident,new_activity):
 
 #Get list of existing incidents
 def get_existing_incidents():
-    all_data = get_firebase_data()
-    return list(all_data.keys())
+    try:
+        all_data = get_firebase_data()
+        return list(all_data.keys())
+    except:
+        return []
     
 #Get list of existing activity
 def get_existing_activity():
-    all_data = get_firebase_data()
-    activity_list = []
-    for key, value in all_data.items():
-        iter_activity = all_data[key]['activity']
-        for key in iter_activity.keys():
-            activity_list.append(key)
-    return activity_list
+    try:
+        all_data = get_firebase_data()
+        activity_list = []
+        for key, value in all_data.items():
+            iter_activity = all_data[key]['activity']
+            for key in iter_activity.keys():
+                activity_list.append(key)
+        return activity_list
+    except:
+        return []
 
 #Get all incidents that haven't been tweeted
 def get_untweeted_incidents():
@@ -152,8 +158,12 @@ def get_untweeted_activity():
                 iter_dict_2 = dict(iter_dict[key1])
                 #Adding parent incident tweet
                 iter_dict_2['incident_tweet_id'] = all_data[key]['incident_tweet_id']
+                iter_dict_2['incident_id'] = all_data[key]['incident_id']
                 #Appending to list
                 all_data_list.append(iter_dict_2)
+
+    #Sorting by activity num so further loops will tweet in order
+    all_data_list = sorted(all_data_list, key=lambda k: k['activity_num'])
 
     return all_data_list
 
@@ -169,48 +179,34 @@ def upload_activity_tweet(incident,activity,tweet_id):
 
 #Create new tweets
 def create_new_tweets():
-
-    #Get untweeted incidents
+    #Test data
     untweeted_incidents = get_untweeted_incidents()
     untweeted_ct = len(untweeted_incidents)
-    untweeted_ctr = 0 
+    untweeted_ctr = 0
 
-    #Iterate over untweeted incidents
-    #Create tweet
-    #Store ID in incident df
-    for index, row in untweeted_incidents.iterrows():
+    for incident in untweeted_incidents:
         untweeted_ctr += 1
-        iter_dict = untweeted_incidents.loc[index].to_dict()
-        iter_id = create_tweet(iter_dict)
-        iter_incident_id = row['incident_id']
-        incident_df.loc[incident_df.incident_id == iter_incident_id, 'incident_tweet_id'] = iter_id
+        iter_tweet_id = create_tweet(incident)
+        iter_incident_id = incident['incident_id']
+        upload_incident_tweet(iter_incident_id,iter_tweet_id)
         time.sleep(1)
         print('Tweeted {} of {} new incidents..'.format(untweeted_ctr,untweeted_ct))
-        if untweeted_ctr >= 10:
-            break
 
-    #Get all untweeted activity
     untweeted_activity = get_untweeted_activity()
     untweeted_ct = len(untweeted_activity)
     untweeted_ctr = 0
 
-    #Iterate over untweeted activity
-    #Create tweet
-    #Store ID in activity DF
-    for index, row in untweeted_activity.iterrows():
+    for activity in untweeted_activity:
         untweeted_ctr += 1
-        iter_dict = untweeted_activity.loc[index].to_dict()
-        iter_id = create_tweet_reply(iter_dict)
-        iter_activity_id = row['incident_activity_id']
-        incident_activity_df.loc[incident_activity_df.incident_activity_id == iter_activity_id,'activity_tweet_id'] = iter_id
+        iter_tweet_id = create_tweet_reply(activity)
+        iter_incident_id = activity['incident_id']
+        iter_activity_id = activity['incident_activity_id']
+        upload_activity_tweet(iter_incident_id,iter_activity_id,iter_tweet_id)
         time.sleep(1)
-        print('Tweeted {} of {} new activity..'.format(untweeted_ctr,untweeted_ct))
-        if untweeted_ctr >= 10:
-            break  
+        print('Tweeted {} of {} new activity..'.format(untweeted_ctr,untweeted_ct)) 
 
 #Initializing firebase
-#get_firebase()
+get_firebase()
 
-#Test data
-untweeted_incidents = get_untweeted_incidents()
+
 
