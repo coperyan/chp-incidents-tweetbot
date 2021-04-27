@@ -9,6 +9,9 @@ from datetime import timedelta, datetime
 
 from twitter_bot import create_tweet, create_tweet_reply
 
+#Limit for tweets (mins)
+LIMIT_MINS = 30
+
 #Setting off data truncation
 pd.set_option('display.max_colwidth', None)
 
@@ -33,11 +36,15 @@ activity_exclusions = [
     'Unit Information'
 ]
 
-def get_data_age(time):
+def time_check(time):
     today_date = datetime.now().date()
     data_time = datetime.combine(today_date,datetime.strptime(time,'%I:%M %p').time())
     now_time = datetime.now()
-    return (now_time - data_time) / 60
+    min_diff = (now_time - data_time).total_seconds() / 60
+    if min_diff >= LIMIT_MINS:
+        return True
+    else:
+        return False
 
 def get_type_exclusions():
     return type_exclusions
@@ -105,6 +112,7 @@ def get_existing_activity():
 
 #Get all incidents that haven't been tweeted
 def get_untweeted_incidents():
+
     #Get firebase data
     all_data = get_firebase_data()
 
@@ -114,11 +122,14 @@ def get_untweeted_incidents():
     #Iterate over incidents
     for key, value in all_data.items():
         #If incident tweet id does not exist 
-        if all_data[key]['incident_tweet_id'] == 0:
-            #Remove activity from return
-            iter_dict = dict(all_data[key]).pop('activity')
+        if all_data[key]['incident_tweet_id'] == 0 and time_check(all_data[key]['incident_time']):
+            #Iter Dict
+            iter_dict = dict(all_data[key])
+            #Remove activity from temp dict
+            del iter_dict['activity']
             #Add to list 
             all_data_list.append(iter_dict)
+
     return all_data_list
 
 #Get all incident activity that hasn't been tweeted
@@ -135,8 +146,8 @@ def get_untweeted_activity():
         iter_dict = all_data[key]['activity']
         #Iterating over activity
         for key1, value1 in iter_dict.items():
-            #If activity tweet id does not exist and incident tweet id does exist
-            if iter_dict[key1]['activity_tweet_id'] == 0 and all_data[key]['incident_tweet_id'] != 0:
+            #if not tweeted, incident IS tweeted and passes time check,
+            if iter_dict[key1]['activity_tweet_id'] == 0 and all_data[key]['incident_tweet_id'] != 0 and time_check(iter_dict[key1]['activity_dt']):
                 #Create dict with activity, no reference
                 iter_dict_2 = dict(iter_dict[key1])
                 #Adding parent incident tweet
@@ -156,7 +167,7 @@ def upload_activity_tweet(incident,activity,tweet_id):
     ref = db.reference('/Incidents/{}/activity/{}'.format(incident,activity))
     ref.update({'activity_tweet_id':tweet_id})
 
-    
+#Create new tweets
 def create_new_tweets():
 
     #Get untweeted incidents
@@ -198,5 +209,8 @@ def create_new_tweets():
             break  
 
 #Initializing firebase
-get_firebase()
+#get_firebase()
+
+#Test data
+untweeted_incidents = get_untweeted_incidents()
 
